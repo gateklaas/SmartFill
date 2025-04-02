@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartFill Settings</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<h3>SmartFill</h3>
+<label class="switch">
+    <input type="checkbox" id="toggleSmartFill">
+    <span class="slider"></span>
+</label>
+<br><br>
+<span id="status">SmartFill is enabled</span>
+<br><br>
+
+<button id="clearCache">Clear Cache</button>
+<div id="confirmBox" class="hidden">
+    <p>Are you sure you want to clear all autocomplete data?</p>
+    <button id="confirmYes">Yes</button>
+    <button id="confirmNo">No</button>
+</div>
+
+<p id="message" class="hidden"></p>
+<script src="popup.js"></script>
+</body>
+</html>
