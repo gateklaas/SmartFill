@@ -40,12 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         confirmYes.addEventListener('click', () => {
-            browser.storage.sync.clear().then(() => {
+            browser.storage.local.clear().then(() => {
                 confirmBox.style.display = 'none';
                 messageBox.textContent = 'Cache cleared successfully!';
                 messageBox.style.display = 'block';
 
-                // Hide the message after 3 seconds
                 setTimeout(() => {
                     messageBox.style.display = 'none';
                 }, 3000);

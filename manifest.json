@@ -24,9 +24,6 @@
     "gecko": {
       "id": "smartfill@randomstring123.com",
       "min_version": "136.0"
-    },
-    "android": {
-      "min_version": "136.0"
     }
   },
   "content_scripts": [
@@ -35,5 +32,8 @@
       "js": ["content.js"],
       "run_at": "document_end"
     }
-  ]
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  }
 }
