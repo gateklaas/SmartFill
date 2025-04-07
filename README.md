@@ -7,6 +7,7 @@ This Firefox add-on predicts text as you type, suggesting completions based on y
 - Stores previous inputs for smarter predictions.
 - Toggle to enable/disable SmartFill for specific domains.
 - Completely offline — no internet connection required.
+- Opensource
 
 ## Contributing
 Feel free to open issues or submit pull requests for bug fixes or new features!
