@@ -27,7 +27,7 @@ async function pruneSomeFormDataItems() {
 async function maybePruneCache(maxBytes = 4 * 1024 * 1024) {
     const used = await getTotalStorageSize();
     if (used > maxBytes) {
-        console.warn("Storage limit approaching — pruning some data...");
+        console.warn('Storage limit approaching — pruning some data...');
         await pruneSomeFormDataItems();
     }
 }

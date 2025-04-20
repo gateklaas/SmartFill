@@ -11,7 +11,7 @@ function hash(str) {
 }
 
 function getStorageKey(inputValue) {
-    return "cache_" + hashToInt(sanitize(inputValue).slice(-3)) % 1000;
+    return 'cache_' + hashToInt(inputValue.toLowerCase().slice(-3)) % 1000;
 }
 
 const suggestionFieldTypes = [
@@ -106,7 +106,7 @@ function getInputValues(inputValue) {
         return ['']
     } else {
         let limitedInputValue = inputValue.slice(-100)
-        return [limitedInputValue, sanitize(limitedInputValue)];
+        return [limitedInputValue, limitedInputValue?.toLowerCase()];
     }
 }
 
