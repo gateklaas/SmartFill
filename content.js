@@ -2,8 +2,16 @@ function sanitize(str) {
     return str?.toLowerCase()?.replace(/[^a-z0-9]/g, '');
 }
 
+function hashToInt(str) {
+    return str.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0);
+}
+
 function hash(str) {
-    return str.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0).toString(36);
+    return hashToInt(str).toString(36);
+}
+
+function getStorageKey(inputValue) {
+    return "cache_" + hashToInt(sanitize(inputValue).slice(-3)) % 1000;
 }
 
 const suggestionFieldTypes = [
@@ -34,7 +42,10 @@ function shouldIgnoreInput(input) {
 function getInputTags(target, input) {
     let fieldNames = new Set();
 
-    if (input.autocomplete) fieldNames.add(input.autocomplete);
+    if (input.autocomplete && input.autocomplete !== 'off') {
+        fieldNames.add(input.autocomplete);
+        fieldNames.add(input.autocomplete.split(' ').at(-1));
+    }
     if (input.id) fieldNames.add(input.id);
     if (input.getAttribute('data-testid')) fieldNames.add(input.getAttribute('data-testid'));
 
@@ -59,10 +70,6 @@ function getInputTags(target, input) {
 
 function getLocations() {
     let locations = []
-    if (window.location.pathname.length > 1) {
-        locations.push(window.location.origin + window.location.pathname);
-    }
-    locations.push(document.title);
     locations.push(window.location.origin);
     locations.push('*');
     return locations;
@@ -70,14 +77,8 @@ function getLocations() {
 
 function getTimes() {
     let hours = new Date().getHours();
-    let h3 = Math.floor(hours / 3) * 3
-    let h6 = Math.floor(hours / 6) * 6
-    let h12 = Math.floor(hours / 12) * 12
     return [
         `${hours}-${hours + 1}`,
-        `${h3}-${h3 + 3}`,
-        `${h6}-${h6 + 6}`,
-        `${h12}-${h12 + 12}`,
         '0-24'
     ]
 }
@@ -86,7 +87,6 @@ function getDays() {
     let day = new Date().getDay();
     return [
         `${day}`,
-        (day >= 1 && day <= 5) ? '1-5' : '0,6',
         '0-6'
     ]
 }
@@ -137,27 +137,29 @@ function saveFormData(target, input) {
         if (shouldIgnoreInput(input) || !input.value) {
             return;
         }
-        previousValue = input.value;
-
-        browser.storage.local.get('savedFormData').then(result => {
-            let savedData = result.savedFormData || {};
-            for (let i = 0; i < Math.min(input.value.length, 200); i++) {
-                for (let dataKey of getDataKeys(target, input, input.value.substring(Math.max(0, i - 100), i))) {
-                    savedData[dataKey] = input.value.slice(i, i + 100);
+        for (let i = 0; i < Math.min(input.value.length, 1000); i++) {
+            let inputValue = input.value.substring(Math.max(0, i - 100), i);
+            let storageKey = getStorageKey(inputValue);
+            browser.storage.local.get(storageKey).then(result => {
+                let storageData = result[storageKey] || {};
+                for (let dataKey of getDataKeys(target, input, inputValue)) {
+                    storageData[dataKey] = input.value.slice(i, i + 100);
                 }
-            }
-            browser.storage.local.set({'savedFormData': savedData});
-        });
+                browser.storage.local.set({[storageKey]: storageData});
+            });
+        }
+        previousValue = input.value;
     }, 0);
 }
 
 async function getSuggestion(target, input) {
     if (shouldIgnoreInput(input)) return null;
-    let result = await browser.storage.local.get('savedFormData');
-    let savedData = result.savedFormData;
-    if (!savedData) return null;
+    let storageKey = getStorageKey(input.value);
+    let result = await browser.storage.local.get(storageKey);
+    let storageData = result[storageKey];
+    if (!storageData) return null;
     for (let dataKey of getDataKeys(target, input, input.value)) {
-        let value = savedData[dataKey];
+        let value = storageData[dataKey];
         if (value) return value;
     }
     return null;
@@ -172,7 +174,7 @@ function showSuggestion(target, input) {
         return;
     }
     getSuggestion(target, input).then(suggestion => {
-        if (suggestion && input.value === inputValue && document.activeElement === input) {
+        if (suggestion && input.value === inputValue && target.activeElement === input) {
             input.setRangeText(suggestion, inputLength, inputLength, 'select');
         }
     });
@@ -180,12 +182,6 @@ function showSuggestion(target, input) {
 
 function handleKeyDown(target, e) {
     let input = e.target;
-    if (e.key === 'Backspace' || e.key === 'Process') {
-        input.disableSuggestion = 'True';
-    } else {
-        delete input.disableSuggestion;
-    }
-
     let inputLength = input.value.length || 0
     if ((e.key === 'Tab' || e.key === 'Enter') &&
         input.selectionStart < inputLength &&
@@ -193,6 +189,10 @@ function handleKeyDown(target, e) {
         e.preventDefault();
         input.setSelectionRange(inputLength, inputLength);
         showSuggestion(target, input);
+    } else if (e.key.length !== 1 || e.ctrlKey || e.metaKey) {
+        input.disableSuggestion = 'True';
+    } else {
+        delete input.disableSuggestion;
     }
 }
 

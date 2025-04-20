@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmNo = document.getElementById('confirmNo');
     const messageBox = document.getElementById('message');
 
-    browser.tabs.query({ active: true, currentWindow: true }, tabs => {
+    browser.tabs.query({active: true, currentWindow: true}, tabs => {
         const url = new URL(tabs[0].url);
         const domain = url.hostname;
 
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         toggle.addEventListener('change', () => {
             const isChecked = toggle.checked;
-            browser.storage.sync.set({ [domain]: isChecked }, () => {
+            browser.storage.sync.set({[domain]: isChecked}, () => {
                 statusText.textContent = isChecked
                     ? `Enabled for ${domain}`
                     : `Disabled for ${domain}`;
