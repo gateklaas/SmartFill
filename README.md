@@ -9,7 +9,14 @@ improve accuracy.
 - Stores previous inputs for smarter predictions.
 - Toggle to enable/disable SmartFill for specific domains.
 - Completely offline — no internet connection required.
-- Opensource
+- Open source
+
+## Support Development
+
+If you find SmartFill useful, consider supporting its development on Ko-fi:  
+[https://ko-fi.com/klaass](https://ko-fi.com/klaass)
+
+Every donation helps keep the project alive and evolving — thank you!
 
 ## Contributing
 
