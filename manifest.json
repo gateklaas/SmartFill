@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "SmartFill",
-  "version": "1.1.1",
-  "description": "SmartFill predicts text as you type, suggesting completions based on your past entries to save time and improve accuracy.",
+  "version": "1.2.0",
+  "description": "SmartFill predicts text as you type, suggesting completions based on your past entries.",
   "permissions": [
     "storage",
     "activeTab"

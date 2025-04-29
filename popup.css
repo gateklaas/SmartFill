@@ -5,13 +5,13 @@ body {
     background-color: #f4f7fc;
     box-sizing: border-box;
     margin: 0;
-    text-align: center;
+    text-align: left; /* changed from center */
 }
 
 h3 {
     color: #333;
-    font-size: 18px;
-    margin-bottom: 10px;
+    font-size: 20px;
+    margin-bottom: 12px;
 }
 
 .switch {
@@ -35,9 +35,9 @@ h3 {
     right: 0;
     bottom: 0;
     background-color: #ddd;
-    transition: 0.3s ease;
+    transition: background-color 0.3s ease;
     border-radius: 50px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .slider:before {
@@ -49,7 +49,7 @@ h3 {
     left: 4px;
     bottom: 4px;
     background-color: white;
-    transition: 0.3s ease;
+    transition: transform 0.3s ease;
 }
 
 input:checked + .slider {
@@ -70,30 +70,29 @@ label {
 
 #status {
     margin-top: 10px;
-    font-size: 14px;
+    font-size: 13px;
     color: #555;
 }
 
 button {
-    margin-top: 15px;
-    padding: 10px 15px;
+    margin-top: 12px;
+    padding: 7px 12px;
     font-size: 14px;
     color: white;
     background-color: #ff4d4d;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    transition: background 0.3s ease, transform 0.2s ease;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 }
 
 button:hover {
     background-color: #cc0000;
-    transform: scale(1.05);
 }
 
 button:active {
-    transform: scale(0.95);
+    background-color: #b30000;
 }
 
 .hidden {
@@ -101,29 +100,24 @@ button:active {
 }
 
 #confirmBox {
-    margin-top: 10px;
+    margin-top: 12px;
     padding: 10px;
     background: #fff3cd;
     border: 1px solid #ffecb5;
     border-radius: 5px;
-    font-size: 14px;
+    font-size: 13px;
     color: #856404;
     text-align: center;
 }
 
 #confirmBox button {
-    margin: 5px;
+    margin: 4px;
     padding: 5px 10px;
-    font-size: 14px;
-    cursor: pointer;
-    border: none;
-    border-radius: 3px;
-    transition: 0.2s;
+    font-size: 13px;
 }
 
 #confirmYes {
     background-color: #ff4d4d;
-    color: white;
 }
 
 #confirmYes:hover {
@@ -139,8 +133,53 @@ button:active {
 }
 
 #message {
-    margin-top: 10px;
+    margin-top: 8px;
     font-size: 12px;
     color: green;
-    text-align: center;
+}
+
+#clearCache {
+    margin-top: 0;
+}
+
+#addFilter {
+    margin-top: 0;
+}
+
+#filterList {
+    margin-top: 10px;
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px; /* Tighter */
+    gap: 4px; /* Smaller gap */
+    width: 100%;
+}
+
+.filter-row input {
+    flex: 1;
+    padding: 5px 6px;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    min-width: 0;
+}
+
+.delete-btn {
+    background: #ff4d4d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 7px; /* Smaller */
+    cursor: pointer;
+    font-size: 12px;
+    flex-shrink: 0;
+    transition: background-color 0.3s;
+}
+
+.delete-btn:hover {
+    background: #e60000;
 }

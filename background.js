@@ -7,29 +7,30 @@ async function getTotalStorageSize() {
     return getByteSize(allItems);
 }
 
-async function pruneSomeFormDataItems() {
+async function pruneSomeFormDataItems(deleteProbability) {
     for (let i = 0; i < 1000; i++) {
-        let storageKey = `cache_${i}`
-        browser.storage.local.get(storageKey).then(result => {
-            let storageData = result[storageKey];
-            if (storageData) {
-                for (let key in storageData) {
-                    if (Math.random() < 0.031) {
-                        delete storageData[key];
-                    }
+        const storageKey = `cache_${i}`
+        const result = await browser.storage.local.get(storageKey)
+        const storageData = result[storageKey];
+        if (storageData) {
+            for (const key in storageData) {
+                if (Math.random() < deleteProbability) {
+                    delete storageData[key];
                 }
-                browser.storage.local.set({[storageKey]: storageData});
             }
-        });
+            await browser.storage.local.set({[storageKey]: storageData});
+        }
     }
 }
 
 async function maybePruneCache(maxBytes = 4 * 1024 * 1024) {
-    const used = await getTotalStorageSize();
-    if (used > maxBytes) {
+    const usedBytes = await getTotalStorageSize();
+    if (usedBytes > maxBytes) {
         console.warn('Storage limit approaching — pruning some data...');
-        await pruneSomeFormDataItems();
+        const targetBytes = maxBytes * 0.9
+        await pruneSomeFormDataItems((usedBytes - targetBytes) / usedBytes);
     }
 }
 
-setTimeout(maybePruneCache, 30000);
+setTimeout(maybePruneCache, 30 * 1000);
+setInterval(maybePruneCache, 60 * 60 * 1000);

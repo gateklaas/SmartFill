@@ -1,58 +1,111 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const toggle = document.getElementById('toggleSmartFill');
-    const statusText = document.getElementById('status');
-    const clearCacheBtn = document.getElementById('clearCache');
-    const confirmBox = document.getElementById('confirmBox');
-    const confirmYes = document.getElementById('confirmYes');
-    const confirmNo = document.getElementById('confirmNo');
-    const messageBox = document.getElementById('message');
+document.addEventListener('DOMContentLoaded', async () => {
+    const $ = id => document.getElementById(id);
 
-    browser.tabs.query({active: true, currentWindow: true}, tabs => {
-        const url = new URL(tabs[0].url);
-        const domain = url.hostname;
+    const toggle = $('toggleSmartFill');
+    const statusText = $('status');
+    const addFilterBtn = $('addFilter');
+    const filterList = $('filterList');
+    const clearCacheBtn = $('clearCache');
+    const confirmBox = $('confirmBox');
+    const confirmYes = $('confirmYes');
+    const confirmNo = $('confirmNo');
+    const messageBox = $('message');
 
-        if (!domain) {
-            toggle.disabled = true;
-            statusText.textContent = 'SmartFill is disabled';
-            return;
+    const [tab] = await browser.tabs.query({active: true, currentWindow: true});
+    const domain = new URL(tab.url).hostname;
+
+    if (!domain) {
+        toggle.disabled = true;
+        statusText.textContent = 'SmartFill is disabled';
+        return;
+    }
+
+    const setDomainStatus = async isEnabled => {
+        await browser.storage.sync.set({[domain]: isEnabled});
+        statusText.textContent = isEnabled ? `Enabled for ${domain}` : `Disabled for ${domain}`;
+    };
+
+    const initToggle = async () => {
+        const {[domain]: isEnabled = true} = await browser.storage.sync.get(domain);
+        toggle.checked = isEnabled;
+        statusText.textContent = isEnabled ? `Enabled for ${domain}` : `Disabled for ${domain}`;
+        toggle.addEventListener('change', () => setDomainStatus(toggle.checked));
+    };
+
+    const saveFilters = filters => {
+        browser.storage.sync.set({filters: filters})
+    };
+
+    const getFilters = async () => {
+        let filters = (await browser.storage.sync.get('filters')).filters;
+        if (filters === undefined) {
+            filters = ['search'];
+            await saveFilters(filters);
         }
+        return filters;
+    };
 
-        browser.storage.sync.get([domain], result => {
-            const isDisabled = result[domain] === false;
+    const createButton = (text, className, onClick) => {
+        const btn = document.createElement('button');
+        btn.textContent = text;
+        btn.className = className;
+        btn.addEventListener('click', onClick);
+        return btn;
+    };
 
-            toggle.checked = !isDisabled;
-            statusText.textContent = isDisabled
-                ? `Disabled for ${domain}`
-                : `Enabled for ${domain}`;
+    const createInput = (value, onChange) => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Enter filter tag';
+        input.value = value;
+        input.addEventListener('change', onChange);
+        return input;
+    };
+
+    const createFilterRow = (initialValue = '') => {
+        const row = document.createElement('div');
+        row.className = 'filter-row';
+
+        const input = createInput(initialValue, async () => {
+            const filters = await getFilters();
+            if (input.value && !filters.includes(input.value)) {
+                filters.push(input.value);
+                await saveFilters(filters);
+            }
         });
 
-        toggle.addEventListener('change', () => {
-            const isChecked = toggle.checked;
-            browser.storage.sync.set({[domain]: isChecked}, () => {
-                statusText.textContent = isChecked
-                    ? `Enabled for ${domain}`
-                    : `Disabled for ${domain}`;
-            });
+        const deleteBtn = createButton('✖', 'delete-btn', async () => {
+            let filters = await getFilters();
+            filters = filters.filter(f => f !== input.value);
+            await saveFilters(filters);
+            row.remove();
         });
 
-        clearCacheBtn.addEventListener('click', () => {
-            confirmBox.style.display = 'block';
-        });
+        row.appendChild(input);
+        row.appendChild(deleteBtn);
+        filterList.appendChild(row);
+    };
 
-        confirmYes.addEventListener('click', () => {
-            browser.storage.local.clear().then(() => {
-                confirmBox.style.display = 'none';
-                messageBox.textContent = 'Cache cleared successfully!';
-                messageBox.style.display = 'block';
+    const initFilters = async () => {
+        const filters = await getFilters();
+        filters.forEach(createFilterRow);
+        addFilterBtn.addEventListener('click', () => createFilterRow());
+    };
 
-                setTimeout(() => {
-                    messageBox.style.display = 'none';
-                }, 3000);
-            });
-        });
-
-        confirmNo.addEventListener('click', () => {
+    const initClearCache = () => {
+        clearCacheBtn.addEventListener('click', () => confirmBox.style.display = 'block');
+        confirmYes.addEventListener('click', async () => {
+            await browser.storage.local.clear();
             confirmBox.style.display = 'none';
+            messageBox.textContent = 'Cache cleared successfully!';
+            messageBox.style.display = 'block';
+            setTimeout(() => messageBox.style.display = 'none', 3000);
         });
-    });
+        confirmNo.addEventListener('click', () => confirmBox.style.display = 'none');
+    };
+
+    // Initialize everything
+    await initToggle();
+    await initFilters();
+    initClearCache();
 });
