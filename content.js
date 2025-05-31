@@ -48,134 +48,156 @@ async function shouldIgnoreInput(target, input) {
     return filters.some(filter => inputTags.some(tag => tag.toLowerCase().includes(filter.toLowerCase())));
 }
 
-function getInputTags(target, input) {
-    const tagMap = new Map();
-
-    function add(tag, priority, sntz = false) {
-        if (sntz) {
-            tag = sanitize(tag);
-        }
-        if (!tag) return;
-        const existing = tagMap.get(tag);
-        if (existing === undefined || priority < existing) {
-            tagMap.set(tag, priority);
-        }
+function addPriority(priorityList, value, priority, sntz = false) {
+    if (sntz) {
+        value = sanitize(value);
     }
+    if (!value) return;
+    priorityList.push({value, priority});
+}
+
+function getInputTags(target, input) {
+    const priorityList = [];
 
     // autocomplete
-    add(input.autocomplete, 1);
-    add(input.autocomplete.split(' ').pop(), 2);
+    addPriority(priorityList, input.autocomplete, 100);
+    addPriority(priorityList, input.autocomplete.split(' ').pop(), 99);
 
     // id, testid
-    add(input.id, 3);
-    add(input.getAttribute('data-testid'), 3);
+    addPriority(priorityList, input.id, 98);
+    addPriority(priorityList, input.getAttribute('data-testid'), 97);
 
     // name title
-    add(input.name, 10, true);
-    add(input.title, 10, true);
+    addPriority(priorityList, input.name, 40, true);
+    addPriority(priorityList, input.title, 40, true);
 
     // label[for]
     if (input.id) {
         const label = target.querySelector(`label[for='${CSS.escape(input.id)}']`);
         if (label) {
-            add(label.id, 10);
-            add(label.textContent, 10, true);
+            addPriority(priorityList, label.id, 40);
+            addPriority(priorityList, label.textContent, 40, true);
         }
     }
 
     // aria-label
-    add(input.getAttribute('aria-label'), 10, true);
+    addPriority(priorityList, input.getAttribute('aria-label'), 40, true);
 
     // aria-labelledby
     const labelledById = input.getAttribute('aria-labelledby');
     if (labelledById) {
         const labelEl = target.querySelector(`#${CSS.escape(labelledById)}`);
-        if (labelEl) add(labelEl.textContent, 10, true);
+        if (labelEl) addPriority(priorityList, labelEl.textContent, 40, true);
     }
 
     // nearby label (e.g., <label>Email</label><input>)
     if (input.previousElementSibling?.tagName === 'LABEL') {
-        add(input.previousElementSibling.textContent, 10, true);
+        addPriority(priorityList, input.previousElementSibling.textContent, 40, true);
     }
 
     // placeholder
-    add(input.placeholder, 10, true);
+    addPriority(priorityList, input.placeholder, 40, true);
 
     // input type
     if (['email', 'tel'].includes(input.type)) {
-        add(input.type, 11);
+        addPriority(priorityList, input.type, 10);
     }
 
-    // Build and sort: first by priority, then length descending
-    return Array.from(tagMap.entries())
-        .sort(([tagA, pA], [tagB, pB]) => {
-            if (pA !== pB)
-                return pA - pB;
-            else
-                return tagB.length - tagA.length;
-        })
-        .map(([tag]) => tag);
+    return priorityList;
 }
 
 function getLocations() {
-    const locations = [];
-    locations.push(window.location.origin);
-    locations.push('*');
-    return locations;
+    const priorityList = [];
+    addPriority(priorityList, window.location.origin + window.location.pathname, 90);
+    addPriority(priorityList, document.title, 40);
+    addPriority(priorityList, window.location.origin, 30);
+    addPriority(priorityList, '*', 1);
+    return priorityList;
 }
 
 function getTimes() {
+    const priorityList = [];
     const hours = new Date().getHours();
-    return [
-        `${hours}-${hours + 1}`,
-        '0-24'
-    ]
+    const h3 = Math.floor(hours / 3) * 3
+    const h6 = Math.floor(hours / 6) * 6
+    const h12 = Math.floor(hours / 12) * 12
+    addPriority(priorityList, `${hours}-${hours + 1}`, 96);
+    addPriority(priorityList, `${h3}-${h3 + 3}`, 89);
+    addPriority(priorityList, `${h6}-${h6 + 6}`, 75);
+    addPriority(priorityList, `${h12}-${h12 + 12}`, 50);
+    addPriority(priorityList, '0-24', 1);
+    return priorityList;
 }
 
 function getDays() {
+    const priorityList = [];
     const day = new Date().getDay();
-    return [
-        `${day}`,
-        '0-6'
-    ]
+    addPriority(priorityList, `${day}`, 86);
+    addPriority(priorityList, (day >= 1 && day <= 5) ? '1-5' : '0,6', 50);
+    addPriority(priorityList, '0-6', 1);
+    return priorityList;
 }
 
 function getPreviousValues(previousValue) {
-    if (!previousValue) {
-        return [''];
-    } else {
-        return [sanitize(previousValue.slice(-100)), ''];
+    const priorityList = [];
+    if (previousValue) {
+        addPriority(priorityList, sanitize(previousValue.slice(-100)), 98);
+        addPriority(priorityList, sanitize(previousValue.slice(-5)), 50);
     }
+    addPriority(priorityList, ' ', 1);
+    return priorityList;
 }
 
 function getInputValues(inputValue) {
+    const priorityList = [];
     if (!inputValue) {
-        return [''];
+        addPriority(priorityList, ' ', 1);
     } else {
         const limitedInputValue = inputValue.slice(-100)
-        return [limitedInputValue, limitedInputValue?.toLowerCase()];
+        addPriority(priorityList, limitedInputValue, 100);
+        addPriority(priorityList, limitedInputValue.toLowerCase(), 95);
+        addPriority(priorityList, limitedInputValue.slice(-10).toLowerCase(), 40);
+    }
+    return priorityList;
+}
+
+function* iteratePriority(iterators, reverse = false) {
+    iterators = iterators.map(iterator => ({...iterator.next(), iterator}));
+    yield iterators.map(it => it.value?.value);
+
+    while (iterators.reduce((acc, it) => !acc || !it.done, false)) {
+        let priorityIterator;
+        if (reverse) {
+            priorityIterator = iterators.reduce((min, it) => !it.done && (min.done || it.value.priority < min.value.priority) ? it : min);
+        } else {
+            priorityIterator = iterators.reduce((max, it) => !it.done && (max.done || it.value.priority > max.value.priority) ? it : max);
+        }
+        const next = priorityIterator.iterator.next();
+        priorityIterator.done = next.done;
+        if (!next.done) {
+            priorityIterator.value = next.value;
+            yield iterators.map(it => it.value?.value);
+        }
     }
 }
 
-function* getDataKeys(target, input, inputValue, previousValue) {
-    const locations = getLocations();
-    const days = getDays();
-    const times = getTimes();
-    const previousValues = getPreviousValues(previousValue);
-    const inputTags = getInputTags(target, input);
-    const inputValues = getInputValues(inputValue);
-    for (const location of locations) {
-        for (const previousValue of previousValues) {
-            for (const time of times) {
-                for (const day of days) {
-                    for (const inputTag of inputTags) {
-                        for (const inputValue of inputValues) {
-                            yield hash(`${inputValue} ${location} ${day} ${time} ${previousValue} ${inputTag}`);
-                        }
-                    }
-                }
-            }
-        }
+function* getDataKeys(target, input, inputValue, previousValue, reverse = false) {
+    let priorityLists = [
+        getLocations(),
+        getDays(),
+        getTimes(),
+        getPreviousValues(previousValue),
+        getInputTags(target, input),
+        getInputValues(inputValue)
+    ];
+
+    if (reverse) {
+        priorityLists = priorityLists.map(list => list.reverse());
+    }
+    const priorityIterators = priorityLists.map(array => array[Symbol.iterator]())
+
+    for (const [location, day, time, previousValue, inputTag, inputValue] of iteratePriority(priorityIterators, reverse)) {
+        yield hash(`${inputValue} ${location} ${day} ${time} ${previousValue} ${inputTag}`);
     }
 }
 
@@ -225,11 +247,14 @@ function saveFormData(target, input) {
             const storageKey = getStorageKey(inputValuePrefix);
             const result = await browser.storage.local.get(storageKey);
             const storageData = result[storageKey] || {};
-            for (let dataKey of getDataKeys(target, input, inputValuePrefix, previousValue)) {
+            for (let dataKey of getDataKeys(target, input, inputValuePrefix, previousValue, true)) {
                 const oldValue = storageData[dataKey];
                 const valueToStore = getValueToStore(oldValue, newValue, randomNumber);
                 if (valueToStore) {
                     storageData[dataKey] = valueToStore;
+                }
+                if (!oldValue || oldValue === newValue) {
+                    break;
                 }
             }
             await browser.storage.local.set({[storageKey]: storageData});
@@ -260,7 +285,7 @@ function showSuggestion(target, input) {
     getSuggestion(target, input).then(suggestion => {
         if (suggestion && input.value === inputValue && target.activeElement === input) {
             input.setRangeText(suggestion, inputLength, inputLength, 'select');
-            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('input', {bubbles: true}));
         }
     });
 }
