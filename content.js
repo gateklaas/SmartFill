@@ -15,6 +15,17 @@ function getStorageKey(inputValue) {
     return 'cache_' + hashToInt(inputValue.toLowerCase().slice(-3)) % 1000;
 }
 
+let cachedFilters = null;
+
+async function getCachedFilters() {
+    if (cachedFilters === null) {
+        const {filters} = await browser.storage.sync.get('filters');
+        cachedFilters = filters || [];
+    }
+    return cachedFilters;
+}
+
+
 const suggestionFieldTypes = [
     'date',
     'datetime',
@@ -32,62 +43,77 @@ const suggestionFieldTypes = [
 ];
 
 async function shouldIgnoreInput(target, input) {
-    const computedStyle = window.getComputedStyle(input);
-    if (!suggestionFieldTypes.includes(input.type)
-        || computedStyle.display === 'none'
-        || computedStyle.visibility === 'hidden'
+    if (input.disabled
+        || input.readOnly
+        || input.hidden
+        || input.style.display === 'none'
+        || input.style.visibility === 'hidden'
+        || input.style.opacity === '0'
+        || input.style.pointerEvents === 'none'
+        || !suggestionFieldTypes.includes(input.type)
         || input.hasAttribute('data-no-autofill')
+        || (input.form?.autocomplete === 'off')
         || input.autocomplete === 'off'
         || input.autocomplete?.match(/cc-(number|exp|exp-month|exp-year|csc|type)/i)) {
         return true;
     }
 
-    const filters = (await browser.storage.sync.get('filters')).filters;
-    if (!filters) return false;
+    const filters = getCachedFilters();
+    if (!filters?.length) return false;
     const inputTags = getInputTags(target, input);
     return filters.some(filter => inputTags.some(tag => tag.toLowerCase().includes(filter.toLowerCase())));
 }
 
 function addPriority(priorityList, value, priority, sntz = false) {
-    if (sntz) {
-        value = sanitize(value);
-    }
+    if (sntz) value = sanitize(value);
     if (!value) return;
-    priorityList.push({value, priority});
+    if (priorityList.some(e => e.value === value)) return;
+    let i = priorityList.findIndex(e => e.priority < priority);
+    priorityList.splice(i === -1 ? priorityList.length : i, 0, {value, priority});
 }
 
 function getInputTags(target, input) {
     const priorityList = [];
 
     // autocomplete
-    addPriority(priorityList, input.autocomplete, 100);
-    addPriority(priorityList, input.autocomplete.split(' ').pop(), 99);
+    addPriority(priorityList, input.autocomplete, 2);
+    addPriority(priorityList, input.autocomplete.split(' ').pop(), 1);
 
     // id, testid
     addPriority(priorityList, input.id, 98);
     addPriority(priorityList, input.getAttribute('data-testid'), 97);
 
-    // name title
-    addPriority(priorityList, input.name, 40, true);
-    addPriority(priorityList, input.title, 40, true);
+    // title
+    addPriority(priorityList, input.title, 30, true);
+
+    // name
+    if (/[.[\]_/\\\s]/.test(input.name)) {
+        const parts = input.name.split(/[.\[\]_/\\\s]+/).filter(Boolean);
+        parts.forEach((_, i) => {
+            const suffix = parts.slice(i).join('');
+            addPriority(priorityList, suffix, 40 - i, true);
+        });
+    } else {
+        addPriority(priorityList, input.name, 40, true);
+    }
 
     // label[for]
     if (input.id) {
         const label = target.querySelector(`label[for='${CSS.escape(input.id)}']`);
         if (label) {
-            addPriority(priorityList, label.id, 40);
-            addPriority(priorityList, label.textContent, 40, true);
+            addPriority(priorityList, label.id, 99);
+            addPriority(priorityList, label.textContent, 20, true);
         }
     }
 
     // aria-label
-    addPriority(priorityList, input.getAttribute('aria-label'), 40, true);
+    addPriority(priorityList, input.getAttribute('aria-label'), 20, true);
 
     // aria-labelledby
     const labelledById = input.getAttribute('aria-labelledby');
     if (labelledById) {
         const labelEl = target.querySelector(`#${CSS.escape(labelledById)}`);
-        if (labelEl) addPriority(priorityList, labelEl.textContent, 40, true);
+        if (labelEl) addPriority(priorityList, labelEl.textContent, 30, true);
     }
 
     // nearby label (e.g., <label>Email</label><input>)
@@ -96,7 +122,7 @@ function getInputTags(target, input) {
     }
 
     // placeholder
-    addPriority(priorityList, input.placeholder, 40, true);
+    addPriority(priorityList, input.placeholder, 70, true);
 
     // input type
     if (['email', 'tel'].includes(input.type)) {
@@ -165,7 +191,7 @@ function* iteratePriority(iterators, reverse = false) {
     iterators = iterators.map(iterator => ({...iterator.next(), iterator}));
     yield iterators.map(it => it.value?.value);
 
-    while (iterators.reduce((acc, it) => !acc || !it.done, false)) {
+    while (iterators.some(it => !it.done)) {
         let priorityIterator;
         if (reverse) {
             priorityIterator = iterators.reduce((min, it) => !it.done && (min.done || it.value.priority < min.value.priority) ? it : min);
@@ -192,7 +218,7 @@ function* getDataKeys(target, input, inputValue, previousValue, reverse = false)
     ];
 
     if (reverse) {
-        priorityLists = priorityLists.map(list => list.reverse());
+        priorityLists = priorityLists.map(list => list.toReversed());
     }
     const priorityIterators = priorityLists.map(array => array[Symbol.iterator]())
 
