@@ -1,27 +1,37 @@
-# SmartFill Firefox Add-on
+# SmartFill – Firefox Add-on
 
-This Firefox add-on predicts text as you type, suggesting completions based on your past entries to save time and
-improve accuracy.
+SmartFill is a lightweight Firefox extension that helps you complete forms faster by suggesting text as you type. It
+learns from what you’ve entered before—across different websites and input fields—and predicts completions directly in
+the input, highlighted for easy acceptance or editing.
 
-## Features
+No AI. No cloud. Just a simple way to save time and reduce repetitive typing.
 
-- Predicts the user's input in text fields.
-- Stores previous inputs for smarter predictions.
-- Toggle to enable/disable SmartFill for specific domains.
-- Completely offline — no internet connection required.
-- Open source
+## ✨ Features
 
-## Support Development
+- 🧠 Learns from your input – Remembers what you’ve typed before and uses it to suggest completions.
+- ⚡ Instant predictions – Suggestions appear inline as selected text in the input field.
+- 🌐 Works across sites – Predictions carry over between different forms and websites.
+- 🔒 Fully offline – Your data stays local. No tracking. No network requests.
+- 🚫 Domain toggle – Enable or disable SmartFill on specific sites as needed.
+- 💡 Open source – Transparent, hackable, and yours to improve.
 
-If you find SmartFill useful, consider supporting its development on Ko-fi:  
-[https://ko-fi.com/klaass](https://ko-fi.com/klaass)
+## 💖 Support Development
 
-Every donation helps keep the project alive and evolving — thank you!
+If you enjoy using SmartFill, you can help keep it maintained and growing by supporting on Ko-fi:
+👉 https://ko-fi.com/klaass
 
-## Contributing
+Every donation is appreciated and helps improve the project. Thank you!
 
-Feel free to open issues or submit pull requests for bug fixes or new features!
+## 🛠️ Contributing
 
-## License
+Got ideas or found a bug? Contributions are welcome!
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- Open an issue for bugs, suggestions, or questions.
+- Submit a pull request to propose changes or improvements.
+
+Let's build something better, together.
+
+## 📄 License
+
+SmartFill is licensed under the MIT License.
+See the [LICENSE](LICENSE) file for details.
