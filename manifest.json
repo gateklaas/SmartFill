@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "SmartFill",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "SmartFill helps you complete forms faster by suggesting text based on what you've typed before — across different websites and fields. As you type, it highlights predicted completions directly in the input, saving time and reducing repetition.",
   "permissions": [
     "storage",

@@ -48,7 +48,6 @@ async function shouldIgnoreInput(target, input) {
         || input.hidden
         || input.style.display === 'none'
         || input.style.visibility === 'hidden'
-        || input.style.opacity === '0'
         || input.style.pointerEvents === 'none'
         || !suggestionFieldTypes.includes(input.type)
         || input.hasAttribute('data-no-autofill')
@@ -58,7 +57,7 @@ async function shouldIgnoreInput(target, input) {
         return true;
     }
 
-    const filters = getCachedFilters();
+    const filters = await getCachedFilters();
     if (!filters?.length) return false;
     const inputTags = getInputTags(target, input);
     return filters.some(filter => inputTags.some(tag => tag.toLowerCase().includes(filter.toLowerCase())));
@@ -97,28 +96,32 @@ function getInputTags(target, input) {
         addPriority(priorityList, input.name, 40, true);
     }
 
-    // label[for]
-    if (input.id) {
-        const label = target.querySelector(`label[for='${CSS.escape(input.id)}']`);
-        if (label) {
-            addPriority(priorityList, label.id, 99);
+    // labels
+    if (input.labels && input.labels.length > 0) {
+        for (const label of input.labels) {
             addPriority(priorityList, label.textContent, 20, true);
         }
     }
 
-    // aria-label
     addPriority(priorityList, input.getAttribute('aria-label'), 20, true);
 
-    // aria-labelledby
     const labelledById = input.getAttribute('aria-labelledby');
     if (labelledById) {
-        const labelEl = target.querySelector(`#${CSS.escape(labelledById)}`);
-        if (labelEl) addPriority(priorityList, labelEl.textContent, 30, true);
+        for (const id of labelledById.split(/\s+/)) {
+            const el = target.querySelector(`#${CSS.escape(id)}`);
+            if (el) addPriority(priorityList, el.textContent, 20, true);
+        }
     }
 
-    // nearby label (e.g., <label>Email</label><input>)
-    if (input.previousElementSibling?.tagName === 'LABEL') {
-        addPriority(priorityList, input.previousElementSibling.textContent, 40, true);
+    const wrappingLabel = input.closest('label');
+    if (wrappingLabel) {
+        addPriority(priorityList, wrappingLabel.textContent, 20, true);
+    }
+
+    const fieldset = input.closest('fieldset');
+    if (fieldset) {
+        const legend = fieldset.querySelector('legend');
+        if (legend) addPriority(priorityList, legend.textContent, 10, true);
     }
 
     // placeholder
