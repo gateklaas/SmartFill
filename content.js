@@ -75,8 +75,10 @@ function getInputTags(target, input) {
     const priorityList = [];
 
     // autocomplete
-    addPriority(priorityList, input.autocomplete, 2);
-    addPriority(priorityList, input.autocomplete.split(' ').pop(), 1);
+    if (input.autocomplete !== 'off') {
+        addPriority(priorityList, input.autocomplete, 2);
+        addPriority(priorityList, input.autocomplete.split(' ').pop(), 1);
+    }
 
     // id, testid
     addPriority(priorityList, input.id, 98);
@@ -270,7 +272,7 @@ function saveFormData(target, input) {
 
         const randomNumber = Math.random();
 
-        for (let i = 0; i < Math.min(inputValue.length, 1000); i++) {
+        for (let i = 0; i < Math.min(inputValue.length, 10000); i++) {
             const inputValuePrefix = inputValue.substring(Math.max(0, i - 100), i);
             const newValue = inputValue.slice(i, i + 100);
             const storageKey = getStorageKey(inputValuePrefix);
@@ -324,13 +326,13 @@ function handleKeyDown(target, e) {
     const inputLength = input.value.length || 0
     if ((e.key === 'Tab' || e.key === 'Enter') &&
         input.selectionStart > 0 &&
-        input.selectionStart < inputLength &&
+        input.selectionStart < input.selectionEnd &&
         input.selectionEnd === inputLength) {
         e.preventDefault();
-        input.setSelectionRange(inputLength, inputLength);
+        input.setSelectionRange(input.selectionEnd, input.selectionEnd);
         showSuggestion(target, input);
     } else if (e.key.length !== 1 || e.ctrlKey || e.metaKey) {
-        input.disableSuggestion = 'True';
+        input.disableSuggestion = true;
     } else {
         delete input.disableSuggestion;
     }
